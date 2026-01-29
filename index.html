@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Hexagon RTS</title>
+    <style>
+      :root {
+        --bg: #000816;
+        --panel: rgba(0,0,0,0.8);
+        --accent: #4a9eff;
+        --muted: #222830;
+        --text: #ffffff;
+        --panel-border: rgba(74,158,255,0.9);
+      }
+
+      body.light {
+        --bg: #f6f8fb;
+        --panel: rgba(255,255,255,0.95);
+        --accent: #2d6cdf;
+        --muted: #e6eefb;
+        --text: #0b1220;
+        --panel-border: rgba(45,108,223,0.9);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        overflow: hidden;
+      }
+      
+      #canvas {
+        display: block;
+        width: 100%;
+        height: 100vh;
+      }
+      
+      #ui {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        pointer-events: none;
+      }
+      
+      #info {
+        background: rgba(0, 0, 0, 0.7);
+        padding: 15px;
+        border: 1px solid #4a9eff;
+        border-radius: 5px;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      #controls {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        background: var(--panel);
+        padding: 15px;
+        border: 1px solid var(--panel-border);
+        border-radius: 5px;
+        font-size: 12px;
+        max-width: 300px;
+      }
+
+      #selected-hex {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: var(--panel);
+        padding: 15px;
+        border: 1px solid var(--panel-border);
+        border-radius: 5px;
+        font-size: 12px;
+        max-width: 300px;
+      }
+
+      /* Main Menu overlay */
+      #main-menu {
+        position: absolute;
+        inset: 0;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.9));
+        z-index: 50;
+      }
+
+      #main-menu .card{
+        width: 360px;
+        padding: 22px;
+        border-radius: 12px;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+        text-align:center;
+      }
+
+      #theme-toggle {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        z-index: 100;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        padding: 8px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      #theme-toggle span { font-weight:600 }
+
+      /* Radial menu */
+      .radial-menu {
+        position: absolute;
+        width: 180px;
+        height: 180px;
+        pointer-events: none;
+        transform: translate(-50%, -50%) scale(0);
+        transition: transform 200ms cubic-bezier(.2,.9,.2,1), opacity 180ms;
+        opacity: 0;
+        z-index: 60;
+      }
+
+      .radial-menu.open { pointer-events: auto; transform: translate(-50%, -50%) scale(1); opacity:1 }
+
+      .radial-menu .center {
+        position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+        width:56px; height:56px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#fff; box-shadow:0 6px 18px rgba(0,0,0,0.4);
+      }
+
+      .radial-menu button.item {
+        position:absolute; left:50%; top:50%; transform-origin: -50% -50%;
+        width:48px; height:48px; border-radius:50%; border:none; background:var(--panel); color:var(--text); cursor:pointer; box-shadow:0 6px 14px rgba(0,0,0,0.35);
+        transition: transform 260ms cubic-bezier(.2,.9,.2,1), opacity 200ms;
+      }
+
+      .radial-menu button.item span { font-size:11px; display:block }
+
+    </style>
+  </head>
+  <body>
+    <div id="ui">
+      <div id="info">
+        <div>3D Hexagon RTS</div>
+        <div id="fps">FPS: 0</div>
+      </div>
+    </div>
+    <div id="selected-hex">
+      <div id="hex-info">Click on a hex to select</div>
+    </div>
+    <div id="controls">
+      <div><strong>Controls:</strong></div>
+      <div>Mouse - Rotate camera</div>
+      <div>Scroll - Zoom</div>
+      <div>Click - Select hex</div>
+      <div>R - Reset camera</div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
