@@ -103,8 +103,8 @@ export class UIManager {
     document.body.appendChild(overlay)
     this.mainMenuEl = overlay
 
-    document.getElementById('single-btn')!.addEventListener('click', () => this.hideMainMenu())
-    document.getElementById('multi-btn')!.addEventListener('click', () => this.hideMainMenu())
+    document.getElementById('single-btn')!.addEventListener('click', () => this.startSinglePlayer())
+    document.getElementById('multi-btn')!.addEventListener('click', () => this.startMultiplayer())
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') this.toggleMainMenu()
@@ -118,7 +118,22 @@ export class UIManager {
 
   private toggleMainMenu() {
     if (!this.mainMenuEl) return
-    this.mainMenuEl.style.display = this.mainMenuEl.style.display === 'none' ? 'flex' : 'none'
+    const show = this.mainMenuEl.style.display === 'none'
+    this.mainMenuEl.style.display = show ? 'flex' : 'none'
+    if (show) this.closeRadial()
+  }
+
+  public startSinglePlayer() {
+    this.hideMainMenu()
+    this.setCurrentPlayer(0)
+    this.closeRadial()
+  }
+
+  public startMultiplayer() {
+    this.hideMainMenu()
+    // multiplayer setup placeholder - future implementation
+    this.setCurrentPlayer(0)
+    this.closeRadial()
   }
 
   private createRadialMenu() {
