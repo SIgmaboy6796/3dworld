@@ -1,4 +1,4 @@
-import * as h3 from 'h3-js'
+import * as h3legacy from 'h3-js/legacy'
 import * as THREE from 'three'
 
 export interface HexTile {
@@ -31,11 +31,11 @@ export class HexagonWorld {
   private generateHexagonGrid() {
     // Get all hexagons at a given resolution around a center point
     // Use h3-js API: geoToH3 / h3ToGeo / kRing to generate a disk of hexes
-    const centerHex = (h3 as any).geoToH3(0, 0, this.resolution)
-    const hexRing = (h3 as any).kRing(centerHex, this.radius)
+    const centerHex = (h3legacy as any).geoToH3(0, 0, this.resolution)
+    const hexRing = (h3legacy as any).kRing(centerHex, this.radius)
 
     hexRing.forEach((address: string) => {
-      const [lat, lng] = (h3 as any).h3ToGeo(address)
+      const [lat, lng] = (h3legacy as any).h3ToGeo(address)
       
       // Convert lat/lng to 3D position on sphere
       const position = this.latLngToSpherePosition(lat, lng)
@@ -166,7 +166,7 @@ export class HexagonWorld {
   }
 
   public getNeighboringHexagons(address: string): HexTile[] {
-    const neighbors = (h3 as any).kRing(address, 1)
+    const neighbors = (h3legacy as any).kRing(address, 1)
     return neighbors
       .filter((addr: string) => addr !== address && this.hexagons.has(addr))
       .map((addr: string) => this.hexagons.get(addr)!)
