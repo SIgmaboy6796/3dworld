@@ -22,13 +22,17 @@ export class HexagonWorld {
   private radius: number
   private hoveredHex: string | null = null
   private group: THREE.Group
+  private fullCoverage: boolean = false
+  private sphereMesh: THREE.Mesh | null = null
+  private cloudMesh: THREE.Mesh | null = null
 
   // kRadius: how many rings of hexes around center. sphereRadius: visual sphere size in world units
-  constructor(scene: THREE.Scene, kRadius: number = 5, resolution: number = 3, sphereRadius: number = 60) {
+  constructor(scene: THREE.Scene, kRadius: number = 5, resolution: number = 3, sphereRadius: number = 60, fullCoverage: boolean = false) {
     this.scene = scene
     this.radius = kRadius
     this.resolution = resolution
     ;(this as any).sphereRadius = sphereRadius
+    this.fullCoverage = fullCoverage
     // create group to hold the globe so we can rotate it and show it behind UI
     this.group = new THREE.Group()
     this.scene.add(this.group)
@@ -55,16 +59,53 @@ export class HexagonWorld {
     const clouds = new THREE.Mesh(cloudGeo, cloudMat)
     clouds.renderOrder = -0.5
 
+    // keep refs for dynamic theme tweaks
+    this.sphereMesh = sphere
+    this.cloudMesh = clouds
+
     this.group.add(sphere)
     this.group.add(clouds)
   }
 
   private generateHexagonGrid() {
-    // Build disk of hexes using H3 and generate per-cell boundary polygons
-    const centerHex = (h3legacy as any).geoToH3(0, 0, this.resolution)
-    const hexRing = (h3legacy as any).kRing(centerHex, this.radius)
+    // Build a set of H3 cell addresses to create. If fullCoverage is true we sample the globe
+    // at a configurable lat/lng step and deduplicate by address, else build a disk around the origin.
+    const addresses = new Set<string>()
 
-    hexRing.forEach((address: string) => {
+    if (this.fullCoverage) {
+      // choose sampling step based on resolution (higher res -> denser sampling)
+      const latStep = Math.max(1, Math.round(6 / (this.resolution + 0.2)))
+      const lngStep = Math.max(1, Math.round(latStep * 1.1))
+
+      for (let lat = -90 + latStep / 2; lat <= 90; lat += latStep) {
+        for (let lng = -180; lng < 180; lng += lngStep) {
+          try {
+            const addr = (h3legacy as any).geoToH3(lat, lng, this.resolution)
+            if (addr) addresses.add(addr)
+          } catch (e) {
+            // ignore problematic samples
+          }
+        }
+      }
+
+      // Expand neighbors (kRing) for each sampled address to fill small gaps
+      const existing = Array.from(addresses)
+      for (const a of existing) {
+        try {
+          const ring = (h3legacy as any).kRing(a, 1)
+          ring.forEach((r: string) => addresses.add(r))
+        } catch (e) {}
+      }
+    } else {
+      const centerHex = (h3legacy as any).geoToH3(0, 0, this.resolution)
+      const hexRing = (h3legacy as any).kRing(centerHex, this.radius)
+      hexRing.forEach((a: string) => addresses.add(a))
+    }
+
+    addresses.forEach((address: string) => {
+      // avoid recreating an address twice
+      if (this.hexagons.has(address)) return
+
       const [lat, lng] = (h3legacy as any).h3ToGeo(address)
 
       // Convert lat/lng to 3D position on sphere
@@ -283,6 +324,29 @@ export class HexagonWorld {
       .map((addr: string) => this.hexagons.get(addr)!)
   }
 
+  // Allows toggling coverage/resolution at runtime — regenerates the hex grid
+  public regenerate(fullCoverage?: boolean) {
+    if (typeof fullCoverage === 'boolean') this.fullCoverage = fullCoverage
+
+    // remove existing meshes
+    for (const mesh of this.hexMeshes) {
+      if (mesh.parent) mesh.parent.remove(mesh)
+      // dispose geometry/material
+      if ((mesh as any).geometry) (mesh as any).geometry.dispose()
+      if ((mesh as any).material) {
+        const mat = (mesh as any).material
+        if (Array.isArray(mat)) mat.forEach(m => m.dispose())
+        else mat.dispose()
+      }
+    }
+
+    this.hexMeshes = []
+    this.hexagons.clear()
+
+    // create new grid
+    this.generateHexagonGrid()
+  }
+
   // rotate globe slowly; call from main animation loop
   private menuOpen: boolean = false
 
@@ -294,6 +358,29 @@ export class HexagonWorld {
     if (this.group) {
       const speed = this.menuOpen ? 0.02 : 0.06
       this.group.rotation.y += deltaTime * speed
+    }
+  }
+
+  // Adjust globe visuals for theme
+  public setTheme(isDark: boolean) {
+    if (this.sphereMesh && this.sphereMesh.material) {
+      const mat = this.sphereMesh.material as THREE.MeshStandardMaterial
+      if (isDark) {
+        mat.color.setHex(0x071a2a)
+        mat.roughness = 0.7
+        mat.emissive.setHex(0x001422)
+        mat.emissiveIntensity = 0.08
+      } else {
+        mat.color.setHex(0x88c9ff)
+        mat.roughness = 0.8
+        mat.emissive.setHex(0x000000)
+        mat.emissiveIntensity = 0
+      }
+    }
+
+    if (this.cloudMesh && this.cloudMesh.material) {
+      const cm = this.cloudMesh.material as THREE.MeshStandardMaterial
+      cm.opacity = isDark ? 0.03 : 0.012
     }
   }
 }

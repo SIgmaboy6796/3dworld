@@ -84,6 +84,8 @@ npm run dev
 
 ### Implemented ✅
 - H3 hexagon grid on sphere (extruded H3 cell polygons)
+- ✅ Full-globe coverage option for H3 generation (lat/lng sampling + deduplication)
+- ✅ Runtime toggle to enable/disable full-globe coverage from the main menu (hot-rebuilds grid)
 - 3D rendering with Three.js and post-processing (bloom)
 - Actual globe mesh with subtle cloud layer and rotation
 - Unit spawning (3 types)

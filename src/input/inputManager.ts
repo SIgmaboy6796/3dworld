@@ -124,8 +124,8 @@ export class InputManager {
         this.camera.lookAt(0, 0, 0)
         break
       case '1':
-        // Claim hexagon
-        this.gameManager.claimHexagon()
+        // Claim / start takeover on selected hexagon (use configured percent)
+        this.gameManager.initiateTakeover()
         break
       case '2':
         // Spawn soldier

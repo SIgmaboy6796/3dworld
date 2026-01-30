@@ -51,19 +51,33 @@ function createStarfield() {
   starCanvas.width = window.innerWidth
   starCanvas.height = window.innerHeight
   starCtx = starCanvas.getContext('2d')
-  if (starCtx) {
+  if (!starCtx) return
+
+  // create a set of stars with slight twinkle
+  const stars: Array<{x:number,y:number,r:number,baseA:number,phase:number,speed:number}> = []
+  const count = 700
+  for (let i = 0; i < count; i++) {
+    stars.push({ x: Math.random()*starCanvas.width, y: Math.random()*starCanvas.height, r: Math.random()*1.2, baseA: 0.15 + Math.random()*0.85, phase: Math.random()*Math.PI*2, speed: 0.6 + Math.random()*1.4 })
+  }
+
+  const draw = (t:number) => {
+    if (!starCtx || !starCanvas) return
+    starCtx.clearRect(0,0,starCanvas.width, starCanvas.height)
     starCtx.fillStyle = '#000'
     starCtx.fillRect(0,0,starCanvas.width, starCanvas.height)
-    for (let i = 0; i < 200; i++) {
-      const x = Math.random() * starCanvas.width
-      const y = Math.random() * starCanvas.height
-      const r = Math.random() * 1.2
-      starCtx.fillStyle = `rgba(255,255,255,${0.7*Math.random()+0.3})`
+    for (const s of stars) {
+      const a = Math.max(0.05, Math.min(1, s.baseA * (0.8 + 0.25*Math.sin(s.phase + t*0.001*s.speed))))
+      starCtx.globalAlpha = a
+      starCtx.fillStyle = `#ffffff`
       starCtx.beginPath()
-      starCtx.arc(x, y, r, 0, Math.PI*2)
+      starCtx.arc(s.x, s.y, s.r, 0, Math.PI*2)
       starCtx.fill()
     }
+    starCtx.globalAlpha = 1
+    requestAnimationFrame(draw)
   }
+
+  draw(performance.now())
   document.body.insertBefore(starCanvas, renderer.domElement)
 }
 
@@ -85,6 +99,9 @@ window.addEventListener('themeChange', (e: any) => {
     renderer.setClearColor(0x68b8ff, 1)
     removeStarfield()
   }
+
+  // let world tweak its visuals
+  if ((hexagonWorld as any)?.setTheme) (hexagonWorld as any).setTheme(isDark)
 })
 
 // initialize theme from body class
@@ -99,7 +116,10 @@ if (document.body.classList.contains('light')) {
 // kRadius: number of hex rings (4 -> modest map)
 // resolution: H3 resolution (3 is fine for dev), sphereRadius: visual size
 // Use resolution 2 for larger hex cells and a larger visual sphere
-const hexagonWorld = new HexagonWorld(scene, 4, 2, 90)
+// Enable fullCoverage=true to sample the globe and deduplicate H3 cells across lat/lng
+const hexagonWorld = new HexagonWorld(scene, 4, 2, 90, true)
+// ensure the world uses the current theme tone
+hexagonWorld.setTheme(!document.body.classList.contains('light'))
 const gameManager = new GameManager(scene, hexagonWorld)
 const inputManager = new InputManager(camera, hexagonWorld, gameManager)
 

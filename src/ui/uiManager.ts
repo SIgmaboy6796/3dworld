@@ -69,11 +69,46 @@ export class UIManager {
     container.id = 'game-ui'
     document.body.appendChild(container)
 
+    // small status bar for quick glance (resources & soldiers)
+    const status = document.createElement('div')
+    status.id = 'status-bar'
+    status.style.position = 'absolute'
+    status.style.left = '18px'
+    status.style.top = '18px'
+    status.style.background = 'rgba(0,0,0,0.35)'
+    status.style.padding = '8px 10px'
+    status.style.borderRadius = '10px'
+    status.style.color = 'var(--text)'
+    status.style.fontSize = '13px'
+    status.style.zIndex = '95'
+    status.style.boxShadow = '0 8px 20px rgba(0,0,0,0.35)'
+    status.innerHTML = `<span id="status-res">💎 0</span> &nbsp; <span id="status-soldiers">⚔️ 0</span>`
+    document.body.appendChild(status)
+
     this.createThemeToggle()
     this.createMainMenu()
     this.createRadialMenu()
 
     this.createTooltip()
+
+    // takeover control slider (persistent on the UI)
+    const takeover = document.createElement('div')
+    takeover.style.marginTop = '12px'
+    takeover.style.display = 'flex'
+    takeover.style.flexDirection = 'column'
+    takeover.style.gap = '6px'
+    takeover.innerHTML = `<div style="font-size:12px; opacity:0.85">Takeover commit: <span id="takeover-value">50%</span></div><input id="takeover-percent" type="range" min="1" max="100" value="50" style="width:100%" />`
+    container.appendChild(takeover)
+
+    const slider = document.getElementById('takeover-percent') as HTMLInputElement | null
+    if (slider) {
+      slider.addEventListener('input', (e:any) => {
+        const val = parseInt((e.target as HTMLInputElement).value, 10)
+        const disp = document.getElementById('takeover-value')
+        if (disp) disp.textContent = `${val}%`
+        window.dispatchEvent(new CustomEvent('takeoverPercentChanged', { detail: { percent: val } }))
+      })
+    }
 
     this.updateUI()
     setInterval(() => this.updateUI(), 500)
@@ -138,6 +173,9 @@ export class UIManager {
         <input id="player-name" placeholder="Your name" style="padding:8px; border-radius:6px; width:58%; border:1px solid rgba(255,255,255,0.04)" />
         <input id="player-color" type="color" value="#ff6666" style="width:40px; height:40px; border-radius:6px; border: none; padding:0" />
       </div>
+      <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:8px;">
+        <label style="font-size:12px; opacity:0.9; display:flex; gap:6px; align-items:center;"><input id="full-coverage" type="checkbox" style="transform:scale(1.05)" /> Full Globe Coverage</label>
+      </div>
       <div style="font-size:12px; color:var(--text); opacity:0.8; margin-top:6px;">Press ESC to toggle menu</div>
     `
     overlay.appendChild(card)
@@ -159,6 +197,15 @@ export class UIManager {
       const val = input?.value || `Player ${this.currentPlayer + 1}`
       ;(this as any).gameManager.setPlayerName(this.currentPlayer, val)
     })
+
+    // toggle full globe coverage (dispatches event read by GameManager)
+    const fc = document.getElementById('full-coverage') as HTMLInputElement | null
+    if (fc) {
+      fc.addEventListener('change', (e) => {
+        const enabled = !!(e.target as HTMLInputElement).checked
+        window.dispatchEvent(new CustomEvent('fullCoverageToggle', { detail: { enabled } }))
+      })
+    }
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') this.toggleMainMenu()
@@ -322,7 +369,11 @@ export class UIManager {
     html += `<div style="margin-top: 5px;">Resources: ${Math.floor(resources)}</div>`
     html += `<div>Income/sec: ${income.toFixed(1)}</div>`
     html += '</div>'
-
+    // sync small status bar
+    const statusRes = document.getElementById('status-res')
+    const statusSold = document.getElementById('status-soldiers')
+    if (statusRes) statusRes.innerHTML = `💎 ${Math.floor(resources)}`
+    if (statusSold) statusSold.innerHTML = `⚔️ ${this.gameManager.getUnitCount(this.currentPlayer)}`
     const troops = this.gameManager.getUnitCount(this.currentPlayer)
 
     html += `<div class="counters" style="margin-top:12px;">

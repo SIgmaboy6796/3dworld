@@ -19,6 +19,8 @@ export class GameManager {
   private hexagonWorld: HexagonWorld
   private selectedHexagon: HexTile | null = null
   private units: Unit[] = []
+  private takeoverTasks: Array<{ id: string; target: string; owner: number; attackers: number; progress: number; rate: number }> = []
+  private takeoverPercent: number = 50
   private buildingManager: BuildingManager
   private resourceManager: ResourceManager
   private uiManager: UIManager
@@ -33,6 +35,18 @@ export class GameManager {
     this.uiManager = new UIManager(this, this.resourceManager)
     this.initializePlayers()
     this.setupGameActions()
+
+    // Listen for coverage toggle from UI
+    window.addEventListener('fullCoverageToggle', (e: any) => {
+      const enabled = !!e.detail?.enabled
+      this.hexagonWorld.regenerate(enabled)
+    })
+
+    // Listen for takeover percentage changes
+    this.takeoverPercent = 50
+    window.addEventListener('takeoverPercentChanged', (e: any) => {
+      if (typeof e.detail?.percent === 'number') this.takeoverPercent = Math.max(1, Math.min(100, Math.round(e.detail.percent)))
+    })
   }
 
   private initializePlayers() {
@@ -53,7 +67,7 @@ export class GameManager {
 
   private setupGameActions() {
     ;(window as any).gameActions = {
-      claimHex: () => this.claimHexagon(),
+      claimHex: () => this.initiateTakeover(),
       spawnSoldier: () => this.spawnUnit('soldier'),
       spawnArcher: () => this.spawnUnit('archer'),
       spawnScout: () => this.spawnUnit('scout'),
@@ -89,34 +103,55 @@ export class GameManager {
     `
   }
 
-  public claimHexagon(): void {
+  // Start a takeover operation using the currently selected hex and the configured takeover percent
+  public initiateTakeover(): void {
     if (!this.selectedHexagon) return
-    
+
     const hex = this.selectedHexagon
-    if (hex.data.owner !== null && hex.data.owner !== this.currentPlayer) {
-      console.log('Hex already owned by another player')
+    if (hex.data.owner !== null && hex.data.owner === this.currentPlayer) {
+      console.log('Already owned')
       return
     }
 
-    if (!this.resourceManager.removeResources(this.currentPlayer, 50)) {
-      console.log('Not enough resources to claim hex')
+    // Determine available troops (simple: total units owned - already committed)
+    const totalOwned = this.getUnitCount(this.currentPlayer)
+    const committed = this.takeoverTasks.filter(t => t.owner === this.currentPlayer).reduce((s, t) => s + t.attackers, 0)
+    const available = Math.max(0, totalOwned - committed)
+
+    const commit = Math.max(1, Math.round((this.takeoverPercent / 100) * totalOwned))
+    if (available <= 0 || commit <= 0) {
+      console.log('No troops available for takeover')
       return
     }
 
-    hex.data.owner = this.currentPlayer
-    const player = this.players.get(this.currentPlayer)
+    const attackers = Math.min(commit, available)
+
+    // base time to takeover ~ 8 seconds per attacker at 1 attacker, so more attackers speed it up
+    const baseTime = 8.0
+    const rate = attackers / baseTime
+
+    const id = `to_${Date.now()}_${Math.round(Math.random()*1000)}`
+    this.takeoverTasks.push({ id, target: hex.address, owner: this.currentPlayer, attackers, progress: 0, rate })
+
+    console.log(`Started takeover on ${hex.address} with ${attackers} attackers (rate ${rate.toFixed(3)})`)
+  }
+
+  // Instant claim helper used internally when takeover completes
+  private finalizeTakeover(targetAddress: string, owner: number) {
+    const hex = this.hexagonWorld.getHexagonByAddress(targetAddress)
+    if (!hex) return
+    hex.data.owner = owner
+    const player = this.players.get(owner)
     if (player) {
       const mat = hex.mesh.material as any
       if (mat && mat.color) {
-        // tint by blending player's color into tile color for a subtle tint
         const base = mat.color.clone()
         const tint = new THREE.Color(player.color)
-        base.lerp(tint, 0.44)
+        base.lerp(tint, 0.5)
         mat.color.copy(base)
-        // store owner for UI
-        hex.data.owner = this.currentPlayer
       }
     }
+    // cleanup info UI
     this.updateHexInfo(hex)
   }
 
@@ -194,6 +229,32 @@ export class GameManager {
         unit.mesh.rotation.y += deltaTime * 0.5
       }
     })
+
+    // Update takeover tasks
+    for (let i = this.takeoverTasks.length - 1; i >= 0; i--) {
+      const t = this.takeoverTasks[i]
+      t.progress += t.rate * deltaTime
+      // visual feedback on the hex being attacked
+      const hex = this.hexagonWorld.getHexagonByAddress(t.target)
+      if (hex) {
+        const mat = hex.mesh.material as any
+        const ownerColor = this.players.get(t.owner)?.color || 0x7fd1ff
+        if (mat && mat.emissive) {
+          // set emissive color scaled by progress
+          const c = new THREE.Color(ownerColor)
+          const intensity = Math.min(0.9, 0.12 + 0.8 * Math.min(1, t.progress))
+          mat.emissive.copy(c)
+          mat.emissiveIntensity = intensity
+        }
+      }
+
+      if (t.progress >= 1) {
+        // takeover complete
+        this.finalizeTakeover(t.target, t.owner)
+        // remove task
+        this.takeoverTasks.splice(i, 1)
+      }
+    }
   }
 
   public getUnitCount(player: number): number {
