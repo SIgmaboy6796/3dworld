@@ -83,15 +83,16 @@ npm run dev
 ## 🎮 Game Features
 
 ### Implemented ✅
-- H3 hexagon grid on sphere
-- 3D rendering with Three.js
+- H3 hexagon grid on sphere (extruded H3 cell polygons)
+- 3D rendering with Three.js and post-processing (bloom)
+- Actual globe mesh with subtle cloud layer and rotation
 - Unit spawning (3 types)
-- Building placement (3 types)
+- Building placement with improved models (barracks, market, tower)
 - Resource management system
-- Ownership tracking
+- Ownership tracking with player tinting
 - Camera controls
-- UI system
-- Terrain types
+- UI system (radial menu with icons & hover labels, tooltips, nametag & color picker)
+- Terrain types (land/water/mountain with elevation differences)
 - Multi-player support (3 players)
 
 ### Not Yet Implemented ❌

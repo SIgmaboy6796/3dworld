@@ -32,7 +32,31 @@ export class HexagonWorld {
     // create group to hold the globe so we can rotate it and show it behind UI
     this.group = new THREE.Group()
     this.scene.add(this.group)
+    // create an actual globe mesh under the hexagons
+    this.createGlobe()
     this.generateHexagonGrid()
+  }
+
+  private createGlobe() {
+    const radius = (this as any).sphereRadius || 60
+    const geo = new THREE.SphereGeometry(radius - 0.35, 64, 40)
+    // Slightly glossy planet material; color tuned to match theme
+    const mat = new THREE.MeshStandardMaterial({ color: 0x071a2a, roughness: 0.7, metalness: 0.06 })
+
+    // subtle latitudinal shading using vertex colors would be nicer, but keep simple
+    const sphere = new THREE.Mesh(geo, mat)
+    sphere.receiveShadow = true
+    sphere.castShadow = false
+    sphere.renderOrder = -1
+
+    // add faint cloud layer for interest
+    const cloudGeo = new THREE.SphereGeometry(radius - 0.3, 48, 32)
+    const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.02, depthWrite: false })
+    const clouds = new THREE.Mesh(cloudGeo, cloudMat)
+    clouds.renderOrder = -0.5
+
+    this.group.add(sphere)
+    this.group.add(clouds)
   }
 
   private generateHexagonGrid() {

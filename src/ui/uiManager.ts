@@ -47,7 +47,7 @@ export class UIManager {
       .counter .value { font-weight:700; margin-top:6px }
 
       /* main menu card */
-      #main-menu { position: absolute; inset:0; display:flex; align-items:center; justify-content:center; background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.85)); z-index:50 }
+      #main-menu { position: absolute; inset:0; display:flex; align-items:center; justify-content:center; background: rgba(6,8,12,0.36); backdrop-filter: blur(6px); z-index:90 }
       #main-menu .card { width:420px; padding:28px; border-radius:12px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.04); text-align:center }
       #main-menu button { width:90%; padding:12px; margin:8px auto; border-radius:10px; background:var(--accent); border:none; color:white; font-weight:600 }
 

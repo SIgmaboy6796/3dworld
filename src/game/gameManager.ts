@@ -74,11 +74,14 @@ export class GameManager {
     if (!info) return
 
     const neighbors = this.hexagonWorld.getNeighboringHexagons(hex.address)
+    const ownerName = hex.data.owner !== null ? (this.players.get(hex.data.owner)?.name || `Player ${hex.data.owner}`) : 'None'
+    const ownerColor = hex.data.owner !== null ? this.players.get(hex.data.owner)?.color : null
+
     info.innerHTML = `
       <div><strong>Hex Address:</strong> ${hex.address.substring(0, 12)}...</div>
       <div><strong>Terrain:</strong> ${hex.data.terrainType}</div>
       <div><strong>Resources:</strong> ${hex.data.resources}</div>
-      <div><strong>Owner:</strong> ${hex.data.owner !== null ? `Player ${hex.data.owner}` : 'None'}</div>
+      <div><strong>Owner:</strong> ${ownerColor ? `<span style="display:inline-block;width:12px;height:12px;background:#${(ownerColor.toString(16)).padStart(6,'0')};border-radius:50%;margin-right:6px;vertical-align:middle;"></span>` : ''}${ownerName}</div>
       <div><strong>Units:</strong> ${hex.data.units}</div>
       <div><strong>Neighbors:</strong> ${neighbors.length}</div>
       <hr/>
