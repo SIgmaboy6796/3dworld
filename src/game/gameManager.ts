@@ -174,6 +174,10 @@ export class GameManager {
     })
   }
 
+  public getUnitCount(player: number): number {
+    return this.units.filter(u => u.owner === player).length
+  }
+
   public getSelectedHexagon(): HexTile | null {
     return this.selectedHexagon
   }

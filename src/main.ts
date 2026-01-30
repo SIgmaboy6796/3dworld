@@ -11,6 +11,71 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
 renderer.setSize(window.innerWidth, window.innerHeight)
 renderer.setClearColor(0x000816, 1)
 document.body.appendChild(renderer.domElement)
+// Ensure canvas sits above any background layers
+renderer.domElement.style.position = 'relative'
+renderer.domElement.style.zIndex = '2'
+
+// Starfield & theme handling
+let starCanvas: HTMLCanvasElement | null = null
+let starCtx: CanvasRenderingContext2D | null = null
+
+function createStarfield() {
+  if (starCanvas) return
+  starCanvas = document.createElement('canvas')
+  starCanvas.id = 'starfield'
+  starCanvas.style.position = 'fixed'
+  starCanvas.style.left = '0'
+  starCanvas.style.top = '0'
+  starCanvas.style.width = '100%'
+  starCanvas.style.height = '100%'
+  starCanvas.style.zIndex = '1'
+  starCanvas.style.pointerEvents = 'none'
+  starCanvas.width = window.innerWidth
+  starCanvas.height = window.innerHeight
+  starCtx = starCanvas.getContext('2d')
+  if (starCtx) {
+    starCtx.fillStyle = '#000'
+    starCtx.fillRect(0,0,starCanvas.width, starCanvas.height)
+    for (let i = 0; i < 200; i++) {
+      const x = Math.random() * starCanvas.width
+      const y = Math.random() * starCanvas.height
+      const r = Math.random() * 1.2
+      starCtx.fillStyle = `rgba(255,255,255,${0.7*Math.random()+0.3})`
+      starCtx.beginPath()
+      starCtx.arc(x, y, r, 0, Math.PI*2)
+      starCtx.fill()
+    }
+  }
+  document.body.insertBefore(starCanvas, renderer.domElement)
+}
+
+function removeStarfield() {
+  if (!starCanvas) return
+  starCanvas.remove()
+  starCanvas = null
+  starCtx = null
+}
+
+window.addEventListener('themeChange', (e: any) => {
+  const isDark = e.detail?.isDark ?? true
+  if (isDark) {
+    // dark mode
+    renderer.setClearColor(0x000000, 1)
+    createStarfield()
+  } else {
+    // light mode - bluish sky
+    renderer.setClearColor(0x68b8ff, 1)
+    removeStarfield()
+  }
+})
+
+// initialize theme from body class
+if (document.body.classList.contains('light')) {
+  renderer.setClearColor(0x68b8ff, 1)
+} else {
+  renderer.setClearColor(0x000000, 1)
+  createStarfield()
+}
 
 // Initialize game systems
 const hexagonWorld = new HexagonWorld(scene, 5) // Radius 5 - adjust for more/fewer hexagons

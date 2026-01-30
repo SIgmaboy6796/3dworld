@@ -3,12 +3,14 @@ import { ResourceManager } from '../game/resourceManager'
 
 export class UIManager {
   private resourceManager: ResourceManager
+  private gameManager: GameManager
   private currentPlayer: number = 0
   private mainMenuEl: HTMLDivElement | null = null
   private radialEl: HTMLDivElement | null = null
   private isDark: boolean = true
 
-  constructor(_gameManager: GameManager, resourceManager: ResourceManager) {
+  constructor(gameManager: GameManager, resourceManager: ResourceManager) {
+    this.gameManager = gameManager
     this.resourceManager = resourceManager
     this.setupUI()
   }
@@ -59,6 +61,7 @@ export class UIManager {
       .radial-menu.open { pointer-events:auto; transform: translate(-50%,-50%) scale(1); opacity:1 }
       .radial-menu .center { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:56px; height:56px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#fff; box-shadow:0 6px 18px rgba(0,0,0,0.4) }
       .radial-menu button.item { position:absolute; left:50%; top:50%; transform-origin: -50% -50%; width:48px; height:48px; border-radius:50%; border:none; background:var(--panel); color:var(--text); cursor:pointer; box-shadow:0 6px 14px rgba(0,0,0,0.35); transition: transform 260ms cubic-bezier(.2,.9,.2,1), opacity 200ms }
+      .radial-menu button.item .icon { font-size:20px; display:block } 
 
     `
     document.head.appendChild(style)
@@ -84,6 +87,8 @@ export class UIManager {
       this.isDark = !this.isDark
       if (this.isDark) document.body.classList.remove('light')
       else document.body.classList.add('light')
+      // Inform other systems (render/scene) about theme change
+      window.dispatchEvent(new CustomEvent('themeChange', { detail: { isDark: this.isDark } }))
     })
   }
 
@@ -146,6 +151,16 @@ export class UIManager {
     center.innerHTML = '&#9679;'
     root.appendChild(center)
 
+    const icons: Record<string, string> = {
+      claim: '⚑',
+      soldier: '🗡️',
+      archer: '🏹',
+      scout: '🔭',
+      barracks: '🏠',
+      market: '🏪',
+      tower: '🗼'
+    }
+
     const actions: Array<{id:string,label:string,cb:string}> = [
       { id: 'claim', label: '1', cb: 'claimHex' },
       { id: 'soldier', label: '2', cb: 'spawnSoldier' },
@@ -160,7 +175,9 @@ export class UIManager {
       const btn = document.createElement('button')
       btn.className = 'item'
       btn.dataset.action = a.cb
-      btn.innerHTML = `<span>${a.label}</span>`
+      btn.innerHTML = `<span class="icon" aria-hidden="true">${icons[a.id] || a.label}</span>`
+      btn.setAttribute('title', a.label)
+      btn.setAttribute('aria-label', a.cb)
       // position in circle
       const angle = (i / actions.length) * Math.PI * 2
       const r = 70
@@ -222,17 +239,14 @@ export class UIManager {
     html += '</div>'
     html += '</div>'
 
-    html += '<div class="action-buttons">'
-    html += '<div style="font-size: 12px; margin-bottom: 8px;"><strong>Selected Hex Actions:</strong></div>'
-    html += '<button onclick="window.gameActions?.claimHex()">1 - Claim Hex (50)</button>'
-    html += '<button onclick="window.gameActions?.spawnSoldier()">2 - Spawn Soldier (100)</button>'
-    html += '<button onclick="window.gameActions?.spawnArcher()">3 - Spawn Archer (100)</button>'
-    html += '<button onclick="window.gameActions?.spawnScout()">4 - Spawn Scout (75)</button>'
-    html += '<div style="font-size: 12px; margin-top: 10px; margin-bottom: 5px;"><strong>Buildings:</strong></div>'
-    html += '<button onclick="window.gameActions?.buildBarracks()">B - Build Barracks (200)</button>'
-    html += '<button onclick="window.gameActions?.buildMarket()">M - Build Market (150)</button>'
-    html += '<button onclick="window.gameActions?.buildTower()">T - Build Tower (300)</button>'
-    html += '</div>'
+    const troops = this.gameManager.getUnitCount(this.currentPlayer)
+
+    html += `<div style="display:flex; gap:12px; align-items:center; margin-top:12px;">
+      <div class="player-card" style="padding:8px; min-width:110px;"><div><strong>Resources</strong></div><div style="margin-top:6px;">${Math.floor(resources)}</div></div>
+      <div class="player-card" style="padding:8px; min-width:110px;"><div><strong>Troops</strong></div><div style="margin-top:6px;">${troops}</div></div>
+    </div>`
+
+    html += `<div style="font-size:11px; opacity:0.8; margin-top:8px;">Right-click a hex to open actions</div>`
 
     container.innerHTML = html
   }

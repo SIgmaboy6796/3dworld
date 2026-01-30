@@ -39,14 +39,31 @@ export class HexagonWorld {
       
       // Convert lat/lng to 3D position on sphere
       const position = this.latLngToSpherePosition(lat, lng)
+
+      // Compute hex radius from H3 boundary to avoid overlaps
+      let hexRadius = 2
+      try {
+        const boundary: Array<[number, number]> = (h3legacy as any).h3ToGeoBoundary(address)
+        const centerPos = position
+        let maxDist = 0
+        boundary.forEach(([bLat, bLng]) => {
+          const bPos = this.latLngToSpherePosition(bLat, bLng)
+          const dist = bPos.clone().sub(centerPos).length()
+          if (dist > maxDist) maxDist = dist
+        })
+        if (maxDist > 0) hexRadius = maxDist * 0.95 // small gap to prevent z-fighting
+      } catch (e) {
+        // fallback - keep default
+        hexRadius = 1.6
+      }
       
       // Determine terrain type (simple random for now)
       const rand = Math.random()
       const terrainType: 'land' | 'water' | 'mountain' = 
         rand > 0.7 ? 'water' : rand > 0.3 ? 'mountain' : 'land'
 
-      // Create hexagon mesh
-      const mesh = this.createHexagonMesh(position, terrainType)
+      // Create hexagon mesh sized to H3 cell
+      const mesh = this.createHexagonMesh(position, terrainType, hexRadius)
       // tag mesh for raycasting lookup
       ;(mesh as any).userData = (mesh as any).userData || {}
       ;(mesh as any).userData.h3 = address
@@ -83,8 +100,8 @@ export class HexagonWorld {
     return new THREE.Vector3(x, y, z)
   }
 
-  private createHexagonMesh(position: THREE.Vector3, terrainType: string): THREE.Mesh {
-    const geometry = new THREE.CylinderGeometry(2, 2, 0.5, 6)
+  private createHexagonMesh(position: THREE.Vector3, terrainType: string, hexRadius: number): THREE.Mesh {
+    const geometry = new THREE.CylinderGeometry(hexRadius, hexRadius, 0.4, 6)
     
     // Color based on terrain type
     let color = 0x2d5a2d // Green - land
@@ -103,7 +120,8 @@ export class HexagonWorld {
     
     // Orient hexagon to face outward from sphere center
     const normal = position.clone().normalize()
-    mesh.position.copy(position)
+    // Offset slightly outwards to avoid z-fighting with neighbors
+    mesh.position.copy(position.clone().add(normal.clone().multiplyScalar(0.02)))
     
     // Make the hexagon face outward
     const quaternion = new THREE.Quaternion()
