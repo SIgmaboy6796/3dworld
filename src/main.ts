@@ -1,4 +1,7 @@
 import * as THREE from 'three'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass'
 import { HexagonWorld } from './world/hexagonWorld'
 import { GameManager } from './game/gameManager'
 import { InputManager } from './input/inputManager'
@@ -9,8 +12,23 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
 
 renderer.setSize(window.innerWidth, window.innerHeight)
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1))
+renderer.toneMapping = THREE.ACESFilmicToneMapping
+renderer.toneMappingExposure = 1.0
 renderer.setClearColor(0x000816, 1)
 document.body.appendChild(renderer.domElement)
+
+// Post-processing composer
+const composer = new EffectComposer(renderer)
+const renderPass = new RenderPass(scene, camera)
+composer.addPass(renderPass)
+const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.28, 0.6, 0.2)
+bloom.threshold = 0.2
+bloom.strength = 0.9
+bloom.radius = 0.5
+composer.addPass(bloom)
+
+
 // Ensure canvas sits above any background layers
 renderer.domElement.style.position = 'relative'
 renderer.domElement.style.zIndex = '2'
@@ -85,6 +103,11 @@ const hexagonWorld = new HexagonWorld(scene, 4, 2, 90)
 const gameManager = new GameManager(scene, hexagonWorld)
 const inputManager = new InputManager(camera, hexagonWorld, gameManager)
 
+// Pause globe rotation while menu open for clearer menu presentation
+window.addEventListener('menuOpen', (e: any) => {
+  hexagonWorld.setMenuOpen(!!e.detail?.open)
+})
+
 // Setup camera - pulled back to see the larger sphere
 camera.position.set(0, 140, 200)
 camera.lookAt(0, 0, 0)
@@ -113,6 +136,8 @@ window.addEventListener('resize', () => {
   camera.aspect = width / height
   camera.updateProjectionMatrix()
   renderer.setSize(width, height)
+  composer.setSize(width, height)
+  composer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1))
 })
 
 // FPS counter
@@ -139,8 +164,8 @@ const animate = () => {
   // rotate globe
   hexagonWorld.update(deltaTime)
 
-  // Render
-  renderer.render(scene, camera)
+  // Render (postprocessing)
+  composer.render()
 }
 
 animate()

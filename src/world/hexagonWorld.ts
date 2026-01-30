@@ -260,9 +260,16 @@ export class HexagonWorld {
   }
 
   // rotate globe slowly; call from main animation loop
+  private menuOpen: boolean = false
+
+  public setMenuOpen(open: boolean) {
+    this.menuOpen = !!open
+  }
+
   public update(deltaTime: number) {
     if (this.group) {
-      this.group.rotation.y += deltaTime * 0.06
+      const speed = this.menuOpen ? 0.02 : 0.06
+      this.group.rotation.y += deltaTime * speed
     }
   }
 }

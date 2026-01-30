@@ -168,6 +168,7 @@ export class UIManager {
   private hideMainMenu() {
     if (!this.mainMenuEl) return
     this.mainMenuEl.style.display = 'none'
+    window.dispatchEvent(new CustomEvent('menuOpen', { detail: { open: false } }))
   }
 
   private toggleMainMenu() {
@@ -175,12 +176,14 @@ export class UIManager {
     const show = this.mainMenuEl.style.display === 'none'
     this.mainMenuEl.style.display = show ? 'flex' : 'none'
     if (show) this.closeRadial()
+    window.dispatchEvent(new CustomEvent('menuOpen', { detail: { open: show } }))
   }
 
   public startSinglePlayer() {
     this.hideMainMenu()
     this.setCurrentPlayer(0)
     this.closeRadial()
+    window.dispatchEvent(new CustomEvent('menuOpen', { detail: { open: false } }))
   }
 
   public startMultiplayer() {
@@ -188,6 +191,7 @@ export class UIManager {
     // multiplayer setup placeholder - future implementation
     this.setCurrentPlayer(0)
     this.closeRadial()
+    window.dispatchEvent(new CustomEvent('menuOpen', { detail: { open: false } }))
   }
 
   private createRadialMenu() {
@@ -211,14 +215,29 @@ export class UIManager {
     }
 
     const actions: Array<{id:string,label:string,cb:string}> = [
-      { id: 'claim', label: '1', cb: 'claimHex' },
-      { id: 'soldier', label: '2', cb: 'spawnSoldier' },
-      { id: 'archer', label: '3', cb: 'spawnArcher' },
-      { id: 'scout', label: '4', cb: 'spawnScout' },
-      { id: 'barracks', label: 'B', cb: 'buildBarracks' },
-      { id: 'market', label: 'M', cb: 'buildMarket' },
-      { id: 'tower', label: 'T', cb: 'buildTower' }
+      { id: 'claim', label: 'Claim', cb: 'claimHex' },
+      { id: 'soldier', label: 'Spawn Soldier', cb: 'spawnSoldier' },
+      { id: 'archer', label: 'Spawn Archer', cb: 'spawnArcher' },
+      { id: 'scout', label: 'Spawn Scout', cb: 'spawnScout' },
+      { id: 'barracks', label: 'Build Barracks', cb: 'buildBarracks' },
+      { id: 'market', label: 'Build Market', cb: 'buildMarket' },
+      { id: 'tower', label: 'Build Tower', cb: 'buildTower' }
     ]
+
+    // radial label
+    const label = document.createElement('div')
+    label.id = 'radial-label'
+    label.style.position = 'absolute'
+    label.style.pointerEvents = 'none'
+    label.style.padding = '6px 8px'
+    label.style.background = 'rgba(8,10,12,0.9)'
+    label.style.color = '#fff'
+    label.style.borderRadius = '6px'
+    label.style.fontSize = '12px'
+    label.style.opacity = '0'
+    label.style.transition = 'opacity 140ms ease, transform 160ms ease'
+    label.style.zIndex = '80'
+    document.body.appendChild(label)
 
     actions.forEach((a, i) => {
       const btn = document.createElement('button')
@@ -240,6 +259,21 @@ export class UIManager {
         const action = (btn.dataset.action as string)
         ;(window as any).gameActions?.[action]?.()
         this.closeRadial()
+      })
+      btn.addEventListener('mouseenter', (e:any) => {
+        label.innerText = a.label
+        label.style.left = `${e.clientX + 14}px`
+        label.style.top = `${e.clientY - 10}px`
+        label.style.opacity = '1'
+        label.style.transform = 'translateY(0)'
+      })
+      btn.addEventListener('mousemove', (e:any) => {
+        label.style.left = `${e.clientX + 14}px`
+        label.style.top = `${e.clientY - 10}px`
+      })
+      btn.addEventListener('mouseleave', () => {
+        label.style.opacity = '0'
+        label.style.transform = 'translateY(-6px)'
       })
       root.appendChild(btn)
     })
