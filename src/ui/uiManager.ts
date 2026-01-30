@@ -18,50 +18,49 @@ export class UIManager {
   private setupUI(): void {
     const style = document.createElement('style')
     style.textContent = `
+      /* UI container - glass panel */
       #game-ui {
         position: absolute;
         top: 20px;
         right: 20px;
-        background: var(--panel);
-        border: 2px solid var(--panel-border);
-        border-radius: 8px;
-        padding: 20px;
-        font-size: 14px;
-        width: 300px;
-        pointer-events: auto;
-      }
-
-      .player-card {
-        background: rgba(0, 0, 0, 0.12);
-        border: 1px solid var(--panel-border);
-        border-radius: 5px;
+        background: rgba(8,10,12,0.45);
+        backdrop-filter: blur(8px) saturate(120%);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 12px;
         padding: 12px;
-        margin-bottom: 10px;
+        font-size: 13px;
+        width: 220px;
+        pointer-events: auto;
+        color: var(--text);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.45);
       }
 
-      .player-card.active { box-shadow: 0 4px 12px rgba(0,0,0,0.3) }
+      .player-card { background: transparent; border-radius:8px; padding:8px }
+      .player-card strong { display:block; font-size:12px }
 
-      .resource-bar { background: var(--muted); border-radius: 3px; height: 20px; margin-top: 5px; overflow:hidden }
-      .resource-fill { background: linear-gradient(90deg, var(--accent), #00ff00); height:100%; transition:width 0.2s; display:flex; align-items:center; justify-content:flex-end; padding-right:5px; font-size:11px }
+      .resource-bar { display:none }
 
-      .action-buttons { margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--panel-border) }
-
-      button { background: var(--accent); border: none; color: white; padding: 8px 12px; margin: 5px 0; border-radius: 6px; cursor: pointer; width:100%; font-size:12px }
-      button:hover { filter:brightness(.95) }
+      /* compact counters */
+      .counters { display:flex; gap:10px; }
+      .counter { background: rgba(255,255,255,0.03); border-radius:10px; padding:8px; min-width:96px; text-align:center; }
+      .counter .icon { font-size:16px; display:block }
+      .counter .value { font-weight:700; margin-top:6px }
 
       /* main menu card */
-      #main-menu { position: absolute; inset:0; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.6); z-index:50 }
-      #main-menu .card { width:360px; padding:22px; border-radius:12px; background:var(--panel); border:1px solid var(--panel-border); text-align:center }
+      #main-menu { position: absolute; inset:0; display:flex; align-items:center; justify-content:center; background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.85)); z-index:50 }
+      #main-menu .card { width:420px; padding:28px; border-radius:12px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.04); text-align:center }
+      #main-menu button { width:90%; padding:12px; margin:8px auto; border-radius:10px; background:var(--accent); border:none; color:white; font-weight:600 }
 
       /* theme toggle */
-      #theme-toggle { position:absolute; top:18px; right:18px; z-index:100; background:var(--panel); border:1px solid var(--panel-border); padding:8px 10px; border-radius:8px; cursor:pointer }
+      #theme-toggle { position:absolute; top:18px; right:18px; z-index:100; background:var(--panel); border:1px solid var(--panel-border); padding:8px 10px; border-radius:10px; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,0.25) }
 
-      /* radial menu */
-      .radial-menu { position:absolute; width:180px; height:180px; pointer-events:none; transform: translate(-50%,-50%) scale(0); transition: transform 200ms cubic-bezier(.2,.9,.2,1), opacity 180ms; opacity:0; z-index:60 }
+      /* radial menu - sleeker */
+      .radial-menu { position:absolute; width:200px; height:200px; pointer-events:none; transform: translate(-50%,-50%) scale(0); transition: transform 220ms cubic-bezier(.2,.9,.2,1), opacity 180ms; opacity:0; z-index:60 }
       .radial-menu.open { pointer-events:auto; transform: translate(-50%,-50%) scale(1); opacity:1 }
-      .radial-menu .center { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:56px; height:56px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#fff; box-shadow:0 6px 18px rgba(0,0,0,0.4) }
-      .radial-menu button.item { position:absolute; left:50%; top:50%; transform-origin: -50% -50%; width:48px; height:48px; border-radius:50%; border:none; background:var(--panel); color:var(--text); cursor:pointer; box-shadow:0 6px 14px rgba(0,0,0,0.35); transition: transform 260ms cubic-bezier(.2,.9,.2,1), opacity 200ms }
-      .radial-menu button.item .icon { font-size:20px; display:block } 
+      .radial-menu .center { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:64px; height:64px; border-radius:50%; background:linear-gradient(180deg,var(--accent),#2563eb); display:flex; align-items:center; justify-content:center; color:#fff; box-shadow:0 10px 30px rgba(9,10,15,0.6) }
+      .radial-menu button.item { position:absolute; left:50%; top:50%; transform-origin: -50% -50%; width:52px; height:52px; border-radius:50%; border:none; background:var(--panel); color:var(--text); cursor:pointer; box-shadow:0 8px 20px rgba(0,0,0,0.35); transition: transform 260ms cubic-bezier(.2,.9,.2,1), opacity 200ms }
+      .radial-menu button.item .icon { font-size:18px; display:block }
+      .radial-menu button.item:hover { transform: scale(1.06) }
 
     `
     document.head.appendChild(style)
@@ -74,8 +73,40 @@ export class UIManager {
     this.createMainMenu()
     this.createRadialMenu()
 
+    this.createTooltip()
+
     this.updateUI()
     setInterval(() => this.updateUI(), 500)
+  }
+
+  private createTooltip() {
+    const tip = document.createElement('div')
+    tip.id = 'hex-tooltip'
+    tip.style.position = 'absolute'
+    tip.style.pointerEvents = 'none'
+    tip.style.padding = '8px 10px'
+    tip.style.background = 'rgba(0,0,0,0.75)'
+    tip.style.color = '#fff'
+    tip.style.borderRadius = '8px'
+    tip.style.fontSize = '12px'
+    tip.style.opacity = '0'
+    tip.style.transition = 'opacity 120ms ease'
+    tip.style.zIndex = '80'
+    document.body.appendChild(tip)
+
+    window.addEventListener('hexHover', (e: any) => {
+      const detail = e.detail
+      const el = document.getElementById('hex-tooltip')!
+      if (detail.hex) {
+        const hex = detail.hex
+        el.innerHTML = `<div style="font-weight:700; margin-bottom:6px;">${hex.address.substring(0,10)}...</div><div style="font-size:12px; opacity:0.9">${hex.data.terrainType} • ${hex.data.resources} res • ${hex.data.units} units</div>`
+        el.style.left = `${detail.x}px`
+        el.style.top = `${detail.y - 8}px`
+        el.style.opacity = '1'
+      } else {
+        el.style.opacity = '0'
+      }
+    })
   }
 
   private createThemeToggle() {
@@ -152,13 +183,13 @@ export class UIManager {
     root.appendChild(center)
 
     const icons: Record<string, string> = {
-      claim: '⚑',
-      soldier: '🗡️',
-      archer: '🏹',
-      scout: '🔭',
-      barracks: '🏠',
-      market: '🏪',
-      tower: '🗼'
+      claim: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 3v18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 3c2.5.5 4.5 0 6 1.2 1.5 1.2 3 1 5 1.2v7c-2 .2-3.5-.2-5 1.2C10.5 14.8 8.5 14.4 6 15.2V3z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+      soldier: `<svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M9 10l6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+      archer: `<svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 21L21 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M7 21l4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+      scout: `<svg width="20" height="20" viewBox="0 0 24 24"><path d="M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
+      barracks: `<svg width="20" height="20" viewBox="0 0 24 24"><path d="M3 11l9-6 9 6" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M3 11v8h18v-8" stroke="currentColor" stroke-width="1.4" fill="none"/></svg>`,
+      market: `<svg width="20" height="20" viewBox="0 0 24 24"><path d="M3 9h18v10H3z" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M3 9l2-4h14l2 4" stroke="currentColor" stroke-width="1.4" fill="none"/></svg>`,
+      tower: `<svg width="20" height="20" viewBox="0 0 24 24"><path d="M8 21h8l-1-6h-6l-1 6z" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M12 3v6" stroke="currentColor" stroke-width="1.6"/></svg>`
     }
 
     const actions: Array<{id:string,label:string,cb:string}> = [
@@ -180,10 +211,12 @@ export class UIManager {
       btn.setAttribute('aria-label', a.cb)
       // position in circle
       const angle = (i / actions.length) * Math.PI * 2
-      const r = 70
+      const r = 82
       const x = Math.cos(angle) * r
       const y = Math.sin(angle) * r
       btn.style.transform = `translate(${x}px, ${y}px) scale(0.0001)`
+      // staggered entrance
+      btn.style.transitionDelay = `${i * 26}ms`
       setTimeout(() => { btn.style.transform = `translate(${x}px, ${y}px) scale(1)` }, 20)
       btn.addEventListener('click', () => {
         const action = (btn.dataset.action as string)
@@ -241,9 +274,9 @@ export class UIManager {
 
     const troops = this.gameManager.getUnitCount(this.currentPlayer)
 
-    html += `<div style="display:flex; gap:12px; align-items:center; margin-top:12px;">
-      <div class="player-card" style="padding:8px; min-width:110px;"><div><strong>Resources</strong></div><div style="margin-top:6px;">${Math.floor(resources)}</div></div>
-      <div class="player-card" style="padding:8px; min-width:110px;"><div><strong>Troops</strong></div><div style="margin-top:6px;">${troops}</div></div>
+    html += `<div class="counters" style="margin-top:12px;">
+      <div class="counter"><div class="icon">💎</div><div class="value">${Math.floor(resources)}</div><div class="label" style="font-size:11px; opacity:0.8">Resources</div></div>
+      <div class="counter"><div class="icon">⚔️</div><div class="value">${troops}</div><div class="label" style="font-size:11px; opacity:0.8">Troops</div></div>
     </div>`
 
     html += `<div style="font-size:11px; opacity:0.8; margin-top:8px;">Right-click a hex to open actions</div>`

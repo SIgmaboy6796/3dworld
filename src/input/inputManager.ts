@@ -57,6 +57,18 @@ export class InputManager {
   }
 
   private onMouseMove(event: MouseEvent): void {
+    // always update mouse coordinates for hover/raycast
+    this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1
+    this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
+
+    // Hover handling when not dragging
+    if (!this.isDragging) {
+      this.raycaster.setFromCamera(this.mouse, this.camera)
+      const hex = this.hexagonWorld.getHexagonAtRay(this.raycaster)
+      this.hexagonWorld.setHoverHexagon(hex)
+      window.dispatchEvent(new CustomEvent('hexHover', { detail: { hex, x: event.clientX, y: event.clientY } }))
+    }
+
     if (!this.isDragging) return
 
     const deltaX = event.clientX - this.previousMousePosition.x

@@ -78,25 +78,33 @@ if (document.body.classList.contains('light')) {
 }
 
 // Initialize game systems
-const hexagonWorld = new HexagonWorld(scene, 5) // Radius 5 - adjust for more/fewer hexagons
+// kRadius: number of hex rings (4 -> modest map)
+// resolution: H3 resolution (3 is fine for dev), sphereRadius: visual size
+// Use resolution 2 for larger hex cells and a larger visual sphere
+const hexagonWorld = new HexagonWorld(scene, 4, 2, 90)
 const gameManager = new GameManager(scene, hexagonWorld)
 const inputManager = new InputManager(camera, hexagonWorld, gameManager)
 
-// Setup camera
-camera.position.set(0, 40, 50)
+// Setup camera - pulled back to see the larger sphere
+camera.position.set(0, 140, 200)
 camera.lookAt(0, 0, 0)
 
-// Setup lighting
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
-scene.add(ambientLight)
+// Setup better lighting for materials
+const hemi = new THREE.HemisphereLight(0xeeeeff, 0x444455, 0.7)
+scene.add(hemi)
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
-directionalLight.position.set(50, 50, 50)
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9)
+directionalLight.position.set(100, 150, 120)
 directionalLight.castShadow = true
 directionalLight.shadow.mapSize.width = 2048
 directionalLight.shadow.mapSize.height = 2048
 directionalLight.shadow.camera.far = 500
 scene.add(directionalLight)
+
+// subtle rim light for nicer silhouettes
+const rim = new THREE.DirectionalLight(0x90cdf4, 0.25)
+rim.position.set(-80, -40, -60)
+scene.add(rim)
 
 // Handle window resize
 window.addEventListener('resize', () => {
