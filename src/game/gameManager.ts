@@ -36,9 +36,19 @@ export class GameManager {
   }
 
   private initializePlayers() {
-    this.players.set(0, { name: 'Player 1', color: 0xff0000 })
-    this.players.set(1, { name: 'Player 2', color: 0x0000ff })
-    this.players.set(2, { name: 'Player 3', color: 0xffff00 })
+    this.players.set(0, { name: 'Player 1', color: 0xff6666 })
+    this.players.set(1, { name: 'Player 2', color: 0x66a3ff })
+    this.players.set(2, { name: 'Player 3', color: 0xffd166 })
+  }
+
+  public setPlayerName(player: number, name: string) {
+    const p = this.players.get(player)
+    if (p) p.name = name
+  }
+
+  public setPlayerColor(player: number, colorHex: number) {
+    const p = this.players.get(player)
+    if (p) p.color = colorHex
   }
 
   private setupGameActions() {
@@ -93,7 +103,16 @@ export class GameManager {
     hex.data.owner = this.currentPlayer
     const player = this.players.get(this.currentPlayer)
     if (player) {
-      ;(hex.mesh.material as THREE.MeshPhongMaterial).color.setHex(player.color)
+      const mat = hex.mesh.material as any
+      if (mat && mat.color) {
+        // tint by blending player's color into tile color for a subtle tint
+        const base = mat.color.clone()
+        const tint = new THREE.Color(player.color)
+        base.lerp(tint, 0.44)
+        mat.color.copy(base)
+        // store owner for UI
+        hex.data.owner = this.currentPlayer
+      }
     }
     this.updateHexInfo(hex)
   }
@@ -184,6 +203,10 @@ export class GameManager {
 
   public getCurrentPlayer(): number {
     return this.currentPlayer
+  }
+
+  public getPlayer(player: number) {
+    return this.players.get(player)
   }
 
   public switchPlayer(): void {

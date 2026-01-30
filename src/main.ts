@@ -136,6 +136,8 @@ const animate = () => {
   // Update game
   gameManager.update(deltaTime)
   inputManager.update(camera)
+  // rotate globe
+  hexagonWorld.update(deltaTime)
 
   // Render
   renderer.render(scene, camera)

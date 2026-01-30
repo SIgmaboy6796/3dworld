@@ -130,10 +130,15 @@ export class UIManager {
     card.className = 'card'
     card.innerHTML = `
       <h2>3D Hexagon RTS</h2>
-      <p style="margin:10px 0 18px;">Choose play mode</p>
+      <p style="margin:10px 0 12px;">Choose play mode</p>
       <button id="single-btn" style="width:100%; padding:12px; margin-bottom:10px;">Single Player</button>
       <button id="multi-btn" style="width:100%; padding:12px; margin-bottom:10px;">Multiplayer</button>
-      <div style="font-size:12px; color:var(--text); opacity:0.8; margin-top:8px;">Press ESC to toggle menu</div>
+      <hr style="margin:12px 0; opacity:0.06" />
+      <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:8px;">
+        <input id="player-name" placeholder="Your name" style="padding:8px; border-radius:6px; width:58%; border:1px solid rgba(255,255,255,0.04)" />
+        <input id="player-color" type="color" value="#ff6666" style="width:40px; height:40px; border-radius:6px; border: none; padding:0" />
+      </div>
+      <div style="font-size:12px; color:var(--text); opacity:0.8; margin-top:6px;">Press ESC to toggle menu</div>
     `
     overlay.appendChild(card)
     document.body.appendChild(overlay)
@@ -141,6 +146,19 @@ export class UIManager {
 
     document.getElementById('single-btn')!.addEventListener('click', () => this.startSinglePlayer())
     document.getElementById('multi-btn')!.addEventListener('click', () => this.startMultiplayer())
+
+    // player settings apply
+    document.getElementById('player-color')!.addEventListener('change', (e: Event) => {
+      const input = e.target as HTMLInputElement
+      const val = input?.value || '#ff6666'
+      const hexInt = parseInt(val.replace('#', ''), 16)
+      ;(this as any).gameManager.setPlayerColor(this.currentPlayer, hexInt)
+    })
+    document.getElementById('player-name')!.addEventListener('blur', (e: Event) => {
+      const input = e.target as HTMLInputElement
+      const val = input?.value || `Player ${this.currentPlayer + 1}`
+      ;(this as any).gameManager.setPlayerName(this.currentPlayer, val)
+    })
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') this.toggleMainMenu()
@@ -257,19 +275,18 @@ export class UIManager {
     const container = document.getElementById('game-ui')
     if (!container) return
 
-    let html = '<h3>RTS Game Status</h3>'
+    const playerInfo = (this as any).gameManager?.getPlayer ? (this as any).gameManager.getPlayer(this.currentPlayer) : { name: `Player ${this.currentPlayer + 1}`, color: 0xff6666 }
+
+    let html = `<div style="display:flex; gap:10px; align-items:center;"><div style="width:12px; height:12px; border-radius:50%; background:${playerInfo ? '#' + (playerInfo.color.toString(16)).padStart(6, '0') : '#ff6666'}"></div><h3 style="margin-left:6px; font-size:15px">${playerInfo?.name || `Player ${this.currentPlayer + 1}`}</h3></div>`
 
     // Display player information (simplified for 1 player in dev)
     const resources = this.resourceManager.getResources(this.currentPlayer)
     const income = this.resourceManager.getIncome(this.currentPlayer)
 
     html += '<div class="player-card active">'
-    html += `<div><strong>Player 1 (You)</strong></div>`
+    html += `<div><strong>${playerInfo?.name || 'Player 1 (You)'}</strong></div>`
     html += `<div style="margin-top: 5px;">Resources: ${Math.floor(resources)}</div>`
     html += `<div>Income/sec: ${income.toFixed(1)}</div>`
-    html += '<div class="resource-bar">'
-    html += `<div class="resource-fill" style="width: ${Math.min(100, (resources / 2000) * 100)}%">${Math.floor(resources)}</div>`
-    html += '</div>'
     html += '</div>'
 
     const troops = this.gameManager.getUnitCount(this.currentPlayer)

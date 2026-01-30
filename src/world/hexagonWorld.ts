@@ -21,6 +21,7 @@ export class HexagonWorld {
   private hexMeshes: THREE.Mesh[] = []
   private radius: number
   private hoveredHex: string | null = null
+  private group: THREE.Group
 
   // kRadius: how many rings of hexes around center. sphereRadius: visual sphere size in world units
   constructor(scene: THREE.Scene, kRadius: number = 5, resolution: number = 3, sphereRadius: number = 60) {
@@ -28,6 +29,9 @@ export class HexagonWorld {
     this.radius = kRadius
     this.resolution = resolution
     ;(this as any).sphereRadius = sphereRadius
+    // create group to hold the globe so we can rotate it and show it behind UI
+    this.group = new THREE.Group()
+    this.scene.add(this.group)
     this.generateHexagonGrid()
   }
 
@@ -66,7 +70,8 @@ export class HexagonWorld {
       const mesh = this.createHexagonMesh(position, boundary, terrainType)
       ;(mesh as any).userData = (mesh as any).userData || {}
       ;(mesh as any).userData.h3 = address
-      this.scene.add(mesh)
+      // add to globe group so it rotates behind UI
+      this.group.add(mesh)
 
       // Store hex data
       const hexTile: HexTile = {
@@ -120,17 +125,19 @@ export class HexagonWorld {
 
     // Extrude to give thickness
     const sphereRadius = (this as any).sphereRadius || 60
-    const depth = Math.max(0.25, sphereRadius * 0.007)
+    const baseDepth = Math.max(0.25, sphereRadius * 0.007)
+    // Make mountain tiles thicker, water shallower
+    const depth = terrainType === 'mountain' ? baseDepth * 1.6 : terrainType === 'water' ? baseDepth * 0.6 : baseDepth
     const extrudeSettings: any = { depth, bevelEnabled: true, bevelThickness: depth * 0.08, bevelSize: depth * 0.04, bevelSegments: 2 }
     const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings)
 
-    // Material selection per terrain
-    let color = 0x2d5a2d // land
-    let roughness = 0.7
+    // Brightened material selection per terrain
+    let color = 0x4dbd4d // brighter green - land
+    let roughness = 0.6
     let metalness = 0.0
     let emissive = 0x000000
-    if (terrainType === 'water') { color = 0x1a76c6; roughness = 0.15; metalness = 0.2 }
-    if (terrainType === 'mountain') { color = 0x7a7a7a; roughness = 0.85; metalness = 0 }
+    if (terrainType === 'water') { color = 0x36a6ff; roughness = 0.18; metalness = 0.12 }
+    if (terrainType === 'mountain') { color = 0x9aa0a6; roughness = 0.9; metalness = 0 }
 
     const material = new THREE.MeshStandardMaterial({ color, roughness, metalness, emissive, flatShading: false })
     const mesh = new THREE.Mesh(geometry, material)
@@ -140,12 +147,13 @@ export class HexagonWorld {
     q.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal)
     mesh.applyQuaternion(q)
 
-    // Place mesh slightly above the surface to avoid z-fighting
-    mesh.position.copy(position.clone().add(normal.clone().multiplyScalar(0.02)))
+    // Place mesh slightly above/below the surface depending on terrain
+    const offset = terrainType === 'mountain' ? 0.045 : terrainType === 'water' ? -0.02 : 0.02
+    mesh.position.copy(position.clone().add(normal.clone().multiplyScalar(offset)))
 
     // Subtle edge highlight using edges but very faint
     const edges = new THREE.EdgesGeometry(geometry)
-    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x1c1c1c, opacity: 0.15, transparent: true }))
+    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x0f1724, opacity: 0.18, transparent: true }))
     mesh.add(line)
 
     return mesh
@@ -158,6 +166,10 @@ export class HexagonWorld {
       if (!prev.data.isSelected) {
         const mat = prev.mesh.material as any
         if (mat && mat.emissive) mat.emissive.setHex(0x000000)
+        // restore color if we brightened it earlier
+        if (mat && mat.color && mat.userData && mat.userData.originalColor) {
+          mat.color.copy(mat.userData.originalColor)
+        }
         prev.mesh.scale.set(1,1,1)
       }
     }
@@ -174,7 +186,13 @@ export class HexagonWorld {
     }
 
     const mat = hex.mesh.material as any
-    if (mat && mat.emissive) mat.emissive.setHex(0x1f8fff)
+    if (mat) {
+      if (!mat.userData) mat.userData = {}
+      if (!mat.userData.originalColor) mat.userData.originalColor = mat.color.clone()
+      // slight brighten
+      mat.color.lerp(new THREE.Color(0xffffff), 0.12)
+      if (mat.emissive) mat.emissive.setHex(0x1f8fff)
+    }
     hex.mesh.scale.set(1.03, 1.03, 1.03)
     this.hoveredHex = hex.address
   }
@@ -217,8 +235,13 @@ export class HexagonWorld {
     // Select new
     hex.data.isSelected = true
     const mat = hex.mesh.material as any
-    if (mat && mat.emissive) mat.emissive.setHex(0x3fb1ff)
-    hex.mesh.scale.set(1.06, 1.06, 1.06)
+    if (mat) {
+      if (mat.emissive) mat.emissive.setHex(0x60c6ff)
+      // slight color brighten for selection
+      const current = (mat.color && mat.color.clone) ? mat.color.clone() : null
+      if (current) mat.color.lerp(new THREE.Color(0x7fd1ff), 0.22)
+    }
+    hex.mesh.scale.set(1.08, 1.08, 1.08)
   }
 
   public getHexagons(): HexTile[] {
@@ -234,5 +257,12 @@ export class HexagonWorld {
     return neighbors
       .filter((addr: string) => addr !== address && this.hexagons.has(addr))
       .map((addr: string) => this.hexagons.get(addr)!)
+  }
+
+  // rotate globe slowly; call from main animation loop
+  public update(deltaTime: number) {
+    if (this.group) {
+      this.group.rotation.y += deltaTime * 0.06
+    }
   }
 }
